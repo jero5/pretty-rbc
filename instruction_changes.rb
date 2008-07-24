@@ -121,7 +121,9 @@ class InstructionChanges
   end
 
   def replace(i, *values)
-    raise "error: replace: tried to enlarge iseq" if i + values.length > @iseq.length
+    if i < 0 or i + values.length > @iseq.length
+      raise "error: replace: out of bounds"
+    end
 
     values.each_index do |k|
       @iseq[i] = values[k]
@@ -344,8 +346,8 @@ class InstructionChanges
   end
 
   def replace_literal(i, *values)
-    if i + values.length > @literals.length
-      raise "error: replace_literal: tried to enlarge literals" 
+    if i < 0 or i + values.length > @literals.length
+      raise "error: replace_literal: out of bounds"
     end
 
     values.each_index do |k|
