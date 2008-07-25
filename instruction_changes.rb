@@ -345,17 +345,6 @@ class InstructionChanges
     recalculate_literals(:insert, i, size_diff)
   end
 
-  def replace_literal(i, *values)
-    if i < 0 or i + values.length > @literals.length
-      raise "error: replace_literal: out of bounds"
-    end
-
-    values.each_index do |k|
-      @literals[i] = values[k]
-      i += 1
-    end
-  end
-
   def delete_literal(i, num_del = 1)
     oldsize = @literals.length
 
@@ -690,11 +679,6 @@ class InstructionChanges
     ic.offset_locals(0..6, 13)
     raise "fail 68.4" unless ic.iseq == [:push_local_depth, 9, 23, :goto, 5, :set_local, 17]
     raise "fail 68.5" unless ic.cm.local_count == 24
-
-    ic.literals = [:hi, :hello, :hey, :howdy]
-
-    ic.replace_literal(1, :oh, :no)
-    raise "fail 69" unless ic.literals == [:hi, :oh, :no, :howdy]
 
     ic.iseq = [:set_local_depth, 2, 3, :foo, :set_literal, 3]
     raise "fail 70" unless ic.at_ins_with_literal?(4) == 0
