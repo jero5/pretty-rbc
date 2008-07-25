@@ -396,18 +396,23 @@ class InstructionChanges
   def offset_literals(range, offset)
     for i in range
       if arg_idx = at_ins_with_literal?(i)
-        k = @iseq[i.succ + arg_idx]
-        @iseq[i.succ + arg_idx] = k + offset
+        @iseq[i.succ + arg_idx] += offset
       end
     end
   end
 
-  def offset_locals(range, offset)
+  def offset_locals(range, offset = @cm.local_count)
+    high = -1
+
     for i in range
       if arg_idx = at_ins_with_local?(i)
-        k = @iseq[i.succ + arg_idx]
-        @iseq[i.succ + arg_idx] = k + offset
+        k = (@iseq[i.succ + arg_idx] += offset)
+        high = k if k > high
       end
+    end
+
+    if high >= @cm.local_count
+      @cm.local_count = high.succ
     end
   end
 
@@ -671,10 +676,20 @@ class InstructionChanges
     raise "fail 66" unless ic.iseq == [:push_literal, 19, :goto, 4, :foo, :dummy, 99, 2]
     raise "fail 67" unless ic.literals == [:blah, :oh, :howdy]
 
-    ic.iseq = [:push_local, 0, :goto, 4, :foo, :dummy, 99, 3]
+    ic.cm.local_count = 3
+    ic.iseq = [:push_local_depth, 9, 7, :goto, 5, :set_local, 3]
 
-    ic.offset_locals(0..1, 33)
-    raise "fail 68" unless ic.iseq == [:push_local, 33, :goto, 4, :foo, :dummy, 99, 3]
+    ic.offset_locals(0..1)
+    raise "fail 68.0" unless ic.iseq == [:push_local_depth, 9, 10, :goto, 5, :set_local, 3]
+    raise "fail 68.1" unless ic.cm.local_count == 11
+
+    ic.offset_locals(2..6, 1)
+    raise "fail 68.2" unless ic.iseq == [:push_local_depth, 9, 10, :goto, 5, :set_local, 4]
+    raise "fail 68.3" unless ic.cm.local_count == 11
+
+    ic.offset_locals(0..6, 13)
+    raise "fail 68.4" unless ic.iseq == [:push_local_depth, 9, 23, :goto, 5, :set_local, 17]
+    raise "fail 68.5" unless ic.cm.local_count == 24
 
     ic.literals = [:hi, :hello, :hey, :howdy]
 
