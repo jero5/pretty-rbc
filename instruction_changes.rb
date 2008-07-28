@@ -405,6 +405,40 @@ class InstructionChanges
     end
   end
 
+  def swap(i)
+
+    raise "error: swap: no Symbol at 'i'" unless
+      @iseq[i].kind_of? Symbol
+
+    k = self.next(i)
+    raise "error: swap: no ins after 'i'" if k.nil?
+
+    size_i = k - i
+
+    n = k.succ
+    n += 1 while n < @iseq.length and @iseq[n].kind_of? Integer
+    size_k = n - k
+
+    values_i = @iseq[i,size_i]
+    values_k = @iseq[k,size_k]
+
+    replace(i, *values_k)
+    replace(i + size_k, *values_i)
+
+    q = i + size_k
+    r = i
+
+    @iseq.each_index do |n|
+      if at_goto? n
+        if @iseq[n.succ] == i
+          @iseq[n.succ] = q
+        elsif @iseq[n.succ] == k
+          @iseq[n.succ] = r
+        end
+      end
+    end
+  end
+
   def self.wrap(iseq)
     layered_iseq = []
     arr = []
@@ -626,9 +660,9 @@ class InstructionChanges
 
     ic.duplicate_iseq(4..5)
     raise "fail 49" unless
-      ic.iseq = [:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :e, :f]
-    raise "fail 50" unless ic.exceptions = [[8, 9, 10]]
-    raise "fail 51" unless ic.lines = [[9, 10, 50]]
+      ic.iseq == [:a, :b, :c, :d, :e, :f, :g, :h, :i, :j, :k, :l, :m, :e, :f]
+    raise "fail 50" unless ic.exceptions == [[8, 9, 10]]
+    raise "fail 51" unless ic.lines == [[9, 10, 50]]
 
     ic.iseq = [:push_literal, 2, :goto, 4, :foo, :dummy, 99, 3]
     ic.literals = [:hello, :hi, :hey, :howdy]
@@ -685,6 +719,20 @@ class InstructionChanges
     raise "fail 71" unless ic.at_ins_with_local?(0) == 1
     raise "fail 72" unless ic.at_ins_with_literal?(3) == nil
     raise "fail 73" unless ic.at_ins_with_local?(3) == nil
+
+    ic.iseq = [:foo, :hi, 4, 3, :no, :goto, 4, :goto_if_true, 7, :hello, :goto, 4]
+
+    ic.swap(5)
+    raise "fail 74" unless
+      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 5, :goto, 4, :hello, :goto, 4]
+
+    ic.swap(1)
+    raise "fail 75" unless
+      ic.iseq == [:foo, :no, :hi, 4, 3, :goto_if_true, 5, :goto, 1, :hello, :goto, 1]
+
+    ic.swap(1)
+    raise "fail 76" unless
+      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 5, :goto, 4, :hello, :goto, 4]
   end
 end
 
