@@ -405,6 +405,8 @@ class InstructionChanges
     end
   end
 
+  # TODO recalculate exceptions and lines
+  #
   def swap(i)
 
     raise "error: swap: no Symbol at 'i'" unless
@@ -425,8 +427,8 @@ class InstructionChanges
     replace(i, *values_k)
     replace(i + size_k, *values_i)
 
-    q = i + size_k
-    r = i
+    q = i
+    r = i + size_k
 
     @iseq.each_index do |n|
       if at_goto? n
@@ -724,15 +726,15 @@ class InstructionChanges
 
     ic.swap(5)
     raise "fail 74" unless
-      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 5, :goto, 4, :hello, :goto, 4]
+      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 7, :goto, 4, :hello, :goto, 4]
 
     ic.swap(1)
     raise "fail 75" unless
-      ic.iseq == [:foo, :no, :hi, 4, 3, :goto_if_true, 5, :goto, 1, :hello, :goto, 1]
+      ic.iseq == [:foo, :no, :hi, 4, 3, :goto_if_true, 7, :goto, 2, :hello, :goto, 2]
 
     ic.swap(1)
     raise "fail 76" unless
-      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 5, :goto, 4, :hello, :goto, 4]
+      ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 7, :goto, 4, :hello, :goto, 4]
   end
 end
 
