@@ -43,6 +43,8 @@ class InstructionChanges
   attr_accessor :cm, :iseq, :literals, :exceptions, :lines
   attr_accessor :excludes  # goto arg values not to modify
 
+  GOTO_OFFSET = 100_000_000
+
   INSTRUCTIONS_WITH_LOCAL = {
     :push_local => 0, :set_local => 0, :push_local_depth => 1,
     :set_local_depth => 1, :set_local_from_fp => 0
@@ -194,7 +196,7 @@ class InstructionChanges
       if at_goto? i
         k = @iseq[i.succ]
         unless @excludes.include? k
-          @iseq[i.succ] = k + first_index + 100_000_000
+          @iseq[i.succ] = k + first_index + GOTO_OFFSET
         end
       end
     end
@@ -214,8 +216,8 @@ class InstructionChanges
   end
 
   def normalized_goto(num)
-    if num - 100_000_000 >= 0
-      num - 100_000_000
+    if num - GOTO_OFFSET >= 0
+      num - GOTO_OFFSET
     else
       num
     end
@@ -489,7 +491,7 @@ class InstructionChanges
     raise "fail 1" unless ic.previous(2) == 0
 
     ic.delete(0)
-    raise "fail 2" unless ic.iseq[0] == :hi
+    raise "fail 2" unless ic.iseq == [:hi]
 
     ic.insert(0, [:goto, 25])
     raise "fail 3" unless ic.iseq == [:goto, 25, :hi]
@@ -739,6 +741,26 @@ class InstructionChanges
     ic.swap(1)
     raise "fail 76" unless
       ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 7, :goto, 4, :hello, :goto, 4]
+
+    # why goto denormalization-normalization is needed.
+    # in this example the first goto's argument should be frozen since it's equal
+    # to a number in the excludes at the time the excludes is set.
+    # other goto arguments should be modifiable even if they equal a number in the
+    # excludes after a modification (offset_gotos in this example).
+
+    ic.excludes = [6]
+    ic.iseq = [:goto, 6, :foo, :hello, :goto, 2, :hi, :what]
+
+    ic.offset_gotos(4..7)
+    raise "fail 77" unless
+      ic.iseq == [:goto, 6, :foo, :hello, :goto, GOTO_OFFSET + 6, :hi, :what]
+
+    ic.delete(3)
+    raise "fail 78" unless
+      ic.iseq == [:goto, 6, :foo, :goto, GOTO_OFFSET + 5, :hi, :what]
+
+    ic.normalize_gotos
+    raise "fail 79" unless ic.iseq == [:goto, 6, :foo, :goto, 5, :hi, :what]
   end
 end
 
