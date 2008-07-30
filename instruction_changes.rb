@@ -35,6 +35,10 @@ class CompiledMethod
   end
 end
 
+# ISSUES
+#   * if an instruction has two locals or two literals
+#     as arguments then a messy code change is required
+#
 class InstructionChanges
   attr_accessor :cm, :iseq, :literals, :exceptions, :lines
   attr_accessor :excludes  # goto arg values not to modify

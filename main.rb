@@ -56,19 +56,33 @@ module Main
 
     puts ''
   end
-end
 
-#Main.infinite_dump_and_load_self
-#Main.dump_others
+  def self.run_tail_call
+
+    cm = Compile.compile_file("#{SELF_DIR}test_tail_call.rb")
+    SelfTailCall.optimize(cm)
+    #str = PrettyCM.dump(cm)
+    #PrettyCM.write_file("#{SELF_DIR}test_tail_call.pcm", str)
+
+    cm.as_script
+
+    puts
+
+    cm = Compile.compile_file("#{SELF_DIR}test_indirect_tail_call.rb")
+    #TailCall.optimize(cm)
+    #str = PrettyCM.dump(cm)
+    #PrettyCM.write_file("#{SELF_DIR}test_indirect_tail_call.pcm", str)
+
+    cm.as_script
+  end
+end
 
 cm = MethodContext.current.method
 ic = InstructionChanges.new(cm)
 ic.test
 
-cm = Compile.compile_file("#{SELF_DIR}test_tail_call.rb")
-SelfTailCall.optimize(cm)
-#str = PrettyCM.dump(cm)
-#PrettyCM.write_file("#{SELF_DIR}test_tail_call.pcm", str)
+#Main.infinite_dump_and_load_self
+#Main.dump_others
 
-cm.as_script
+Main.run_tail_call
 

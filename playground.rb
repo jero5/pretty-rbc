@@ -2,9 +2,9 @@
 # Copyright (c) 2008 Jeremy Roach
 # Licensed under The MIT License
 
-module StructuredGoto
+module TailCall
 
-  def self.make(cm_host, cmethods)
+  def self.optimize(cm_main)
     
   end
 end
