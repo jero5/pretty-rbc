@@ -22,9 +22,9 @@ module SelfTailCall
   def self.modify_iseq_copy(ic, num_args, uniq_arg_counts,
                                 len_orig_iseq, len_orig_exc, len_orig_lines)
 
-    ic.excludes = []
+    ic.immutable_gotos = []
     uniq_arg_counts.each_value do |v|
-      ic.excludes << v
+      ic.immutable_gotos << v
     end
 
     len_iseq = ic.iseq.length

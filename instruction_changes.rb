@@ -41,7 +41,7 @@ end
 #
 class InstructionChanges
   attr_accessor :cm, :iseq, :literals, :exceptions, :lines
-  attr_accessor :excludes  # goto arg values not to modify
+  attr_accessor :immutable_gotos
 
   GOTO_OFFSET = 100_000_000
 
@@ -67,7 +67,7 @@ class InstructionChanges
     @literals = cm.literals.to_a
     @exceptions = cm.exceptions.to_a.map { |tup| tup.to_a }
     @lines = cm.lines.to_a.map { |tup| tup.to_a }
-    @excludes = []
+    @immutable_gotos = []
   end
 
   def finalize
@@ -169,7 +169,7 @@ class InstructionChanges
 
       if at_goto? n
         x = @iseq[n.succ]
-        unless @excludes.include? x
+        unless @immutable_gotos.include? x
           case action
           when :delete
             if normalized_goto(x) > k
@@ -195,7 +195,7 @@ class InstructionChanges
     for i in range
       if at_goto? i
         k = @iseq[i.succ]
-        unless @excludes.include? k
+        unless @immutable_gotos.include? k
           @iseq[i.succ] = k + first_index + GOTO_OFFSET
         end
       end
@@ -433,18 +433,18 @@ class InstructionChanges
     replace(i, *values_k)
     replace(i + size_k, *values_i)
 
-    q = i
-    r = i + size_k
+    x = i + size_k
 
     @iseq.each_index do |n|
       if at_goto? n
-        if @iseq[n.succ] == i
-          @iseq[n.succ] = q
-        elsif @iseq[n.succ] == k
-          @iseq[n.succ] = r
+        if @iseq[n.succ] == k
+          @iseq[n.succ] = x
         end
       end
     end
+
+    recalculate_exceptions(:swap, i, size_i + size_k)
+    recalculate_lines(:swap, i, size_i + size_k)
   end
 
   def self.wrap(iseq)
@@ -455,7 +455,7 @@ class InstructionChanges
 
       case iseq[i]
       when Symbol
-        if arr.length == 0
+        if arr.empty?
           arr << iseq[i]
         else
           layered_iseq << arr
@@ -468,7 +468,7 @@ class InstructionChanges
       end
     end
 
-    if arr.length == 0
+    if arr.empty?
       layered_iseq
     else
       layered_iseq << arr
@@ -546,7 +546,7 @@ class InstructionChanges
       ic.iseq == [:goto, 2, :foo, :hi, :goto, 3, :goto_if_false, 4, :where, :goto, 8,
                   :goto, 2, :foo, :hi, :goto, 3, :goto_if_false, 11, :where, :goto, 8]
 
-    ic.excludes = [11]
+    ic.immutable_gotos = [11]
     ic.offset_gotos(11..21)
     ic.normalize_gotos
     raise "fail 18" unless
@@ -557,14 +557,14 @@ class InstructionChanges
     raise "fail 19" unless ic.previous(0).nil?
     raise "fail 20" unless ic.next(2).nil?
 
-    ic.excludes = [6]
+    ic.immutable_gotos = [6]
     ic.iseq = [:goto, 3, :hello, :hi, :goto_if_true, 6, :foo, :when]
 
     ic.delete(2)
     raise "fail 21" unless
       ic.iseq == [:goto, 2, :hi, :goto_if_true, 6, :foo, :when]
 
-    ic.excludes = []
+    ic.immutable_gotos = []
     ic.iseq = [:here, 5, :where, 10]
     ic.replace(1, 8, :when)
     raise "fail 22" unless ic.iseq == [:here, 8, :when, 10]
@@ -744,11 +744,11 @@ class InstructionChanges
 
     # why goto denormalization-normalization is needed.
     # in this example the first goto's argument should be frozen since it's equal
-    # to a number in the excludes at the time the excludes is set.
-    # other goto arguments should be modifiable even if they equal a number in the
-    # excludes after a modification (offset_gotos in this example).
+    # to a number in @immutable_gotos at the time @immutable_gotos is set.
+    # other goto arguments should be modifiable even if they equal a number in
+    # @immutable_gotos after a modification (offset_gotos in this example).
 
-    ic.excludes = [6]
+    ic.immutable_gotos = [6]
     ic.iseq = [:goto, 6, :foo, :hello, :goto, 2, :hi, :what]
 
     ic.offset_gotos(4..7)
