@@ -262,6 +262,48 @@ class InstructionChanges
         new_other = (other >= i ? other + size_diff : other)
 
         @exceptions[n] = [new_first, new_last, new_other]
+      when :swap
+
+        x = self.next(i)
+        old_x = i + @iseq[x..k].length
+
+        if first > i and first <= k
+          new_first = if first < old_x
+                        x - 1
+                      elsif first > old_x
+                        k
+                      else
+                        x
+                      end
+        else
+          new_first = first
+        end
+
+        if last > i and last <= k
+          new_last = if last < old_x
+                       x - 1
+                     elsif last > old_x
+                       k
+                     else
+                       x
+                     end
+        else
+          new_last = last
+        end
+
+        if other > i and other <= k
+          new_other = if other < old_x
+                        x - 1
+                      elsif other > old_x
+                        k
+                      else
+                        x
+                      end
+        else
+          new_other = other
+        end
+
+        @exceptions[n] = [new_first, new_last, new_other]
       end
 
       n += 1
@@ -314,6 +356,36 @@ class InstructionChanges
 
         new_first = (first >= i ? first + size_diff : first)
         new_last  = (last >= i ? last + size_diff : last)
+
+        @lines[n] = [new_first, new_last, other]
+      when :swap
+
+        x = self.next(i)
+        old_x = i + @iseq[x..k].length
+
+        if first > i and first <= k
+          new_first = if first < old_x
+                        x - 1
+                      elsif first > old_x
+                        k
+                      else
+                        x
+                      end
+        else
+          new_first = first
+        end
+
+        if last > i and last <= k
+          new_last = if last < old_x
+                       x - 1
+                     elsif last > old_x
+                       k
+                     else
+                       x
+                     end
+        else
+          new_last = last
+        end
 
         @lines[n] = [new_first, new_last, other]
       end
@@ -411,8 +483,6 @@ class InstructionChanges
     end
   end
 
-  # TODO recalculate exceptions and lines
-  #
   def swap(i)
 
     raise "error: swap: no Symbol at 'i'" unless
@@ -451,20 +521,20 @@ class InstructionChanges
     layered_iseq = []
     arr = []
 
-    iseq.each_index do |i|
+    iseq.each do |obj|
 
-      case iseq[i]
+      case obj
       when Symbol
         if arr.empty?
-          arr << iseq[i]
+          arr << obj
         else
           layered_iseq << arr
-          arr = [iseq[i]]
+          arr = [obj]
         end
       when Integer
-        arr << iseq[i]
+        arr << obj
       else
-        raise "error: InstructionChanges.wrap: bad object type '#{iseq[i].class}'"
+        raise "error: InstructionChanges.wrap: bad object type '#{obj.class}'"
       end
     end
 
@@ -729,24 +799,47 @@ class InstructionChanges
     raise "fail 73" unless ic.at_ins_with_local?(3) == nil
 
     ic.iseq = [:foo, :hi, 4, 3, :no, :goto, 4, :goto_if_true, 7, :hello, :goto, 4]
+    ic.exceptions = [[0, 3, 5], [4, 4, 9], [1, 2, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
+    ic.lines = [[0, 3, 5], [4, 4, 9], [1, 2, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
 
     ic.swap(5)
-    raise "fail 74" unless
+    raise "fail 74.0" unless
       ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 7, :goto, 4, :hello, :goto, 4]
+    raise "fail 74.1" unless
+      ic.exceptions == [[0, 3, 5], [4, 4, 9], [1, 2, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
+    raise "fail 74.2" unless
+      ic.lines == [[0, 3, 5], [4, 4, 9], [1, 2, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
 
     ic.swap(1)
-    raise "fail 75" unless
+    raise "fail 75.0" unless
       ic.iseq == [:foo, :no, :hi, 4, 3, :goto_if_true, 7, :goto, 2, :hello, :goto, 2]
+    raise "fail 75.1" unless
+      ic.exceptions == [[0, 1, 5], [2, 2, 9], [1, 1, 2], [0, 9, 10], [5, 6, 7], [1, 2, 5]]
+    raise "fail 75.2" unless
+      ic.lines == [[0, 1, 5], [2, 2, 9], [1, 1, 4], [0, 9, 10], [5, 6, 7], [1, 2, 5]]
 
     ic.swap(1)
-    raise "fail 76" unless
+    raise "fail 76.0" unless
       ic.iseq == [:foo, :hi, 4, 3, :no, :goto_if_true, 7, :goto, 4, :hello, :goto, 4]
+    raise "fail 76.1" unless
+      ic.exceptions == [[0, 1, 5], [4, 4, 9], [1, 1, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
+    raise "fail 76.2" unless
+      ic.lines == [[0, 1, 5], [4, 4, 9], [1, 1, 4], [0, 9, 10], [5, 6, 7], [1, 4, 5]]
+
+    ic.iseq = [:foo, 15, :hi, 23, 57, :what]
+    ic.exceptions = [[1, 2, 4]]
+    ic.lines = [[1, 2, 4]]
+
+    ic.swap(0)
+    raise "fail 76.3" unless ic.iseq == [:hi, 23, 57, :foo, 15, :what]
+    raise "fail 76.4" unless ic.exceptions == [[2, 3, 4]]
+    raise "fail 76.5" unless ic.lines == [[2, 3, 4]]
 
     # why goto denormalization-normalization is needed.
     # in this example the first goto's argument should be frozen since it's equal
     # to a number in @immutable_gotos at the time @immutable_gotos is set.
     # other goto arguments should be modifiable even if they equal a number in
-    # @immutable_gotos after a modification (offset_gotos in this example).
+    # @immutable_gotos after an offset_gotos modification.
 
     ic.immutable_gotos = [6]
     ic.iseq = [:goto, 6, :foo, :hello, :goto, 2, :hi, :what]
