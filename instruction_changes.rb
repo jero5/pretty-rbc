@@ -267,41 +267,41 @@ class InstructionChanges
         x = self.next(i)
         old_x = i + (k - x).succ
 
-        if first > i and first <= k
-          new_first = if first < old_x
+        new_first = if first > i and first <= k
+                      if first < old_x
                         x - 1
                       elsif first > old_x
                         k
                       else
                         x
                       end
-        else
-          new_first = first
-        end
+                    else
+                      first
+                    end
 
-        if last > i and last <= k
-          new_last = if last < old_x
+        new_last = if last > i and last <= k
+                     if last < old_x
                        x - 1
                      elsif last > old_x
                        k
                      else
                        x
                      end
-        else
-          new_last = last
-        end
+                   else
+                     last
+                   end
 
-        if other > i and other <= k
-          new_other = if other < old_x
+        new_other = if other > i and other <= k
+                      if other < old_x
                         x - 1
                       elsif other > old_x
                         k
                       else
                         x
                       end
-        else
-          new_other = other
-        end
+                    else
+                      other
+                    end
 
         @exceptions[n] = [new_first, new_last, new_other]
       end
@@ -363,29 +363,29 @@ class InstructionChanges
         x = self.next(i)
         old_x = i + (k - x).succ
 
-        if first > i and first <= k
-          new_first = if first < old_x
+        new_first = if first > i and first <= k
+                      if first < old_x
                         x - 1
                       elsif first > old_x
                         k
                       else
                         x
                       end
-        else
-          new_first = first
-        end
+                    else
+                      first
+                    end
 
-        if last > i and last <= k
-          new_last = if last < old_x
+        new_last = if last > i and last <= k
+                     if last < old_x
                        x - 1
                      elsif last > old_x
                        k
                      else
                        x
                      end
-        else
-          new_last = last
-        end
+                   else
+                     last
+                   end
 
         @lines[n] = [new_first, new_last, other]
       end
