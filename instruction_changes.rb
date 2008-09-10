@@ -265,7 +265,7 @@ class InstructionChanges
       when :swap
 
         x = self.next(i)
-        old_x = i + @iseq[x..k].length
+        old_x = i + (k - x).succ
 
         if first > i and first <= k
           new_first = if first < old_x
@@ -361,7 +361,7 @@ class InstructionChanges
       when :swap
 
         x = self.next(i)
-        old_x = i + @iseq[x..k].length
+        old_x = i + (k - x).succ
 
         if first > i and first <= k
           new_first = if first < old_x
