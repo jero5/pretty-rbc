@@ -254,6 +254,8 @@ class InstructionChanges
           @exceptions[n] = [first - size_diff, last - size_diff, other - size_diff]
         elsif other >= i and other <= k
           @exceptions[n] = [first, last, i]
+        elsif other > k
+          @exceptions[n] = [first, last, other - size_diff]
         end
       when :insert
 
@@ -854,6 +856,13 @@ class InstructionChanges
 
     ic.normalize_gotos
     raise "fail 79" unless ic.iseq == [:goto, 6, :foo, :goto, 5, :hi, :what]
+
+    ic.iseq = [:hello, 3, :foo, :hi, 2, :what]
+    ic.exceptions = [[0, 1, 5]]
+
+    ic.delete(2)
+    raise "fail 80" unless ic.iseq == [:hello, 3, :hi, 2, :what]
+    raise "fail 81" unless ic.exceptions == [[0, 1, 4]]
   end
 end
 
