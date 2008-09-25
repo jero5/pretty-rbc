@@ -1,5 +1,0 @@
-
-pcm.rb
-  PrettyCM.dump :: CompiledMethod -> String
-  PrettyCM.load :: String -> CompiledMethod
-
